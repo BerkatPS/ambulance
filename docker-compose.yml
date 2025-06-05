@@ -66,11 +66,13 @@ services:
         restart: unless-stopped
         ports:
             - "80:80"
+            - "443:443"
             - "8000:80"
         volumes:
             - ./:/var/www
             - ./nginx/conf.d/:/etc/nginx/conf.d/
             - ./nginx/logs:/var/log/nginx
+            - ./nginx/ssl:/etc/nginx/ssl
         networks:
             - ambulance_network
         depends_on:

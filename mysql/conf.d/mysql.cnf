@@ -19,10 +19,10 @@ max_allowed_packet = 64M
 wait_timeout = 300
 interactive_timeout = 300
 
-# Query cache settings
-query_cache_type = 1
-query_cache_size = 16M
-query_cache_limit = 1M
+# Query cache settings - disabled as not supported in MySQL 8.0
+# query_cache_type = 1
+# query_cache_size = 16M
+# query_cache_limit = 1M
 
 # Logging settings
 slow_query_log = 0
