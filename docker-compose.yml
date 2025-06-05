@@ -75,7 +75,7 @@ services:
         restart: unless-stopped
         environment:
             MYSQL_ROOT_PASSWORD: password
-            MYSQL_DATABASE: campus_job_portal
+            MYSQL_DATABASE: ambulance_portal
             MYSQL_USER: laravel_user
             MYSQL_PASSWORD: laravel_password
             MYSQL_ROOT_HOST: '%'
