@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="240" height="120" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ambulance Body -->
+  <g id="ambulance-body">
+    <!-- Main Body -->
+    <rect x="40" y="50" width="160" height="40" rx="5" fill="#ffffff" stroke="#dddddd" stroke-width="2"/>
+    <!-- Front Cabin -->
+    <path d="M200,50 L220,65 L220,90 L200,90 Z" fill="#ffffff" stroke="#dddddd" stroke-width="2"/>
+    <!-- Window -->
+    <path d="M205,60 L215,70 L215,85 L205,85 Z" fill="#a8d8ff" stroke="#88b8ff" stroke-width="1"/>
+    <!-- Red Line -->
+    <rect x="40" y="60" width="160" height="5" fill="#ff4136"/>
+    <!-- Headlights -->
+    <circle cx="215" cy="77" r="3" fill="#ffdd00"/>
+    <!-- Rear Lights -->
+    <rect x="40" y="75" width="5" height="10" fill="#ff4136"/>
+    <!-- Red Cross -->
+    <rect x="90" y="30" width="40" height="20" rx="2" fill="#ff4136"/>
+    <rect x="100" y="25" width="20" height="30" rx="2" fill="#ff4136"/>
+  </g>
+  <!-- Emergency Lights -->
+  <g id="emergency-lights">
+    <rect x="70" y="40" width="80" height="10" rx="5" fill="#333333"/>
+    <circle cx="80" cy="45" r="4" fill="#ff4136" class="light-red"/>
+    <circle cx="100" cy="45" r="4" fill="#0074D9" class="light-blue"/>
+    <circle cx="120" cy="45" r="4" fill="#ff4136" class="light-red"/>
+    <circle cx="140" cy="45" r="4" fill="#0074D9" class="light-blue"/>
+  </g>
+  <!-- Wheels -->
+  <g id="wheels">
+    <circle cx="70" cy="95" r="15" fill="#333333" stroke="#444444" stroke-width="2"/>
+    <circle cx="70" cy="95" r="7" fill="#666666"/>
+    <circle cx="180" cy="95" r="15" fill="#333333" stroke="#444444" stroke-width="2"/>
+    <circle cx="180" cy="95" r="7" fill="#666666"/>
+  </g>
+  <!-- Wheel Caps -->
+  <g id="wheel-caps">
+    <circle cx="70" cy="95" r="3" fill="#888888"/>
+    <circle cx="180" cy="95" r="3" fill="#888888"/>
+  </g>
+  <!-- Details -->
+  <g id="details">
+    <rect x="150" y="65" width="20" height="15" rx="2" fill="#f5f5f5" stroke="#dddddd"/>
+    <rect x="60" y="65" width="30" height="10" rx="1" fill="#f5f5f5" stroke="#dddddd"/>
+  </g>
+  <!-- Style for animation -->
+  <style>
+    @keyframes flash-red {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    @keyframes flash-blue {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+    .light-red {
+      animation: flash-red 0.7s infinite;
+    }
+    .light-blue {
+      animation: flash-blue 0.7s infinite;
+    }
+  </style>
+</svg>

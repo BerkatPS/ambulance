@@ -1,0 +1,11 @@
+[mysqld]
+# Minimal configuration for Docker environment
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+default-storage-engine = innodb
+
+[mysql]
+default-character-set = utf8mb4
+
+[client]
+default-character-set = utf8mb4

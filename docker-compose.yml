@@ -1,0 +1,161 @@
+services:
+    # PHP Application Service
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: job_portal_app
+        restart: unless-stopped
+        volumes:
+            - ./:/var/www
+            - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+            - ./wait-for-db.sh:/wait-for-db.sh
+        environment:
+            - DB_CONNECTION=mysql
+            - DB_HOST=db
+            - DB_PORT=3306
+            - DB_DATABASE=ambulance_portal
+            - DB_USERNAME=laravel_user
+            - DB_PASSWORD=laravel_password
+            - APP_ENV=production
+            - APP_DEBUG=false
+        networks:
+            - job_portal_network
+        depends_on:
+            db:
+                condition: service_healthy
+        entrypoint:
+            - /bin/bash
+            - -c
+            - |
+                mkdir -p /var/www/storage/logs /var/www/storage/framework/sessions /var/www/storage/framework/views /var/www/storage/framework/cache /var/www/bootstrap/cache
+                chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+                chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+                chmod +x /wait-for-db.sh
+                /wait-for-db.sh db
+                php artisan config:clear
+                php artisan migrate --force
+                php-fpm
+        healthcheck:
+            test: ["CMD", "php", "-v"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+            start_period: 30s
+
+    # Nginx Web Server Service
+    webserver:
+        image: nginx:alpine
+        container_name: job_portal_nginx
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "8000:80"
+        volumes:
+            - ./:/var/www
+            - ./nginx/conf.d/:/etc/nginx/conf.d/
+            - ./nginx/logs:/var/log/nginx
+        networks:
+            - job_portal_network
+        depends_on:
+            app:
+                condition: service_healthy
+        healthcheck:
+            test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost" ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
+
+
+    # MySQL Database Service
+    db:
+        image: mysql:8.0
+        container_name: job_portal_db
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: password
+            MYSQL_DATABASE: campus_job_portal
+            MYSQL_USER: laravel_user
+            MYSQL_PASSWORD: laravel_password
+            MYSQL_ROOT_HOST: '%'
+        volumes:
+            - dbdata:/var/lib/mysql
+            - ./mysql/conf.d:/etc/mysql/conf.d
+            - ./mysql/init:/docker-entrypoint-initdb.d
+        networks:
+            - job_portal_network
+        ports:
+            - "3306:3306"
+        command: >
+            --default-authentication-plugin=mysql_native_password
+            --bind-address=0.0.0.0
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
+            interval: 20s
+            timeout: 15s
+            retries: 10
+            start_period: 60s
+
+    # Queue Worker Service (untuk background jobs)
+    queue:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: job_portal_queue
+        restart: unless-stopped
+        volumes:
+            - ./:/var/www
+            - ./wait-for-db.sh:/wait-for-db.sh
+        networks:
+            - job_portal_network
+        depends_on:
+            db:
+                condition: service_healthy
+            app:
+                condition: service_started
+        entrypoint: ["/bin/bash", "-c"]
+        command:
+            - |
+                chmod +x /wait-for-db.sh
+                /wait-for-db.sh db
+                sleep 15  # Tunggu app container siap
+                php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+
+    # Scheduler Service (untuk scheduled tasks)
+    scheduler:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: job_portal_scheduler
+        restart: unless-stopped
+        volumes:
+            - ./:/var/www
+            - ./wait-for-db.sh:/wait-for-db.sh
+        networks:
+            - job_portal_network
+        depends_on:
+            db:
+                condition: service_healthy
+            app:
+                condition: service_started
+        entrypoint: ["/bin/bash", "-c"]
+        command:
+            - |
+                chmod +x /wait-for-db.sh
+                /wait-for-db.sh db
+                sleep 20  # Tunggu app container siap
+                while true; do
+                  php artisan schedule:run --verbose --no-interaction
+                  sleep 60
+                done
+
+# Networks
+networks:
+    job_portal_network:
+        driver: bridge
+
+# Volumes
+volumes:
+    dbdata:
+        driver: local
