@@ -4,32 +4,31 @@ character-set-server = utf8mb4
 collation-server = utf8mb4_unicode_ci
 default-storage-engine = innodb
 
-# Performance settings
-innodb_buffer_pool_size = 1G
-innodb_log_file_size = 256M
+# Performance settings - reduced for container environment
+innodb_buffer_pool_size = 128M
+innodb_log_file_size = 64M
 innodb_flush_log_at_trx_commit = 2
-innodb_flush_method = O_DIRECT
 innodb_file_per_table = 1
-innodb_io_capacity = 200
-innodb_read_io_threads = 4
-innodb_write_io_threads = 4
+innodb_io_capacity = 100
+innodb_read_io_threads = 2
+innodb_write_io_threads = 2
 
 # Connection settings
-max_connections = 500
-max_allowed_packet = 128M
-wait_timeout = 600
-interactive_timeout = 600
+max_connections = 150
+max_allowed_packet = 64M
+wait_timeout = 300
+interactive_timeout = 300
 
 # Query cache settings
 query_cache_type = 1
-query_cache_size = 32M
-query_cache_limit = 2M
+query_cache_size = 16M
+query_cache_limit = 1M
 
 # Logging settings
-slow_query_log = 1
-slow_query_log_file = /var/log/mysql/mysql-slow.log
+slow_query_log = 0
+# slow_query_log_file = /var/log/mysql/mysql-slow.log
 long_query_time = 2
-log_error = /var/log/mysql/error.log
+# log_error = /var/log/mysql/error.log
 
 # Security settings
 sql_mode = STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION
