@@ -165,6 +165,9 @@ return [
         App\Providers\BroadcastServiceProvider::class, // Added for real-time notifications
 //        App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+        
+        // Third-party Service Providers...
+        Laravel\Pail\PailServiceProvider::class,
     ],
 
     /*
