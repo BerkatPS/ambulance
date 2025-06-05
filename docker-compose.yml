@@ -1,10 +1,12 @@
+version: '3.8'
+
 services:
     # PHP Application Service
     app:
         build:
             context: .
             dockerfile: Dockerfile
-        container_name: job_portal_app
+        container_name: ambulance_app
         restart: unless-stopped
         volumes:
             - ./:/var/www
@@ -16,11 +18,19 @@ services:
             - DB_PORT=3306
             - DB_DATABASE=ambulance_portal
             - DB_USERNAME=laravel_user
-            - DB_PASSWORD=laravel_password
+            - DB_PASSWORD=${DB_PASSWORD:-laravel_password}
             - APP_ENV=production
             - APP_DEBUG=false
+            - APP_URL=https://18.136.126.65
+            - ASSET_URL=https://18.136.126.65
+            - APP_KEY=${APP_KEY}
+            - LOG_CHANNEL=stack
+            - LOG_LEVEL=error
+            - CACHE_DRIVER=file
+            - SESSION_DRIVER=database
+            - QUEUE_CONNECTION=database
         networks:
-            - job_portal_network
+            - ambulance_network
         depends_on:
             db:
                 condition: service_healthy
@@ -31,32 +41,50 @@ services:
                 mkdir -p /var/www/storage/logs /var/www/storage/framework/sessions /var/www/storage/framework/views /var/www/storage/framework/cache /var/www/bootstrap/cache
                 chmod -R 775 /var/www/storage /var/www/bootstrap/cache
                 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+                # Ensure public/build directory exists and has correct permissions
+                mkdir -p /var/www/public/build
+                chmod -R 755 /var/www/public
+                chown -R www-data:www-data /var/www/public
+
                 chmod +x /wait-for-db.sh
                 /wait-for-db.sh db
+
+                # Clear caches and rebuild if needed
                 php artisan config:clear
+                php artisan route:clear
+                php artisan view:clear
+                php artisan cache:clear
+                php artisan optimize
+
+                # Run migrations
                 php artisan migrate --force
+
+                # Start PHP-FPM
                 php-fpm
         healthcheck:
             test: ["CMD", "php", "-v"]
             interval: 30s
             timeout: 10s
             retries: 5
-            start_period: 30s
+            start_period: 60s
 
     # Nginx Web Server Service
     webserver:
         image: nginx:alpine
-        container_name: job_portal_nginx
+        container_name: ambulance_webserver
         restart: unless-stopped
         ports:
             - "80:80"
+            - "443:443"
             - "8000:80"
         volumes:
             - ./:/var/www
             - ./nginx/conf.d/:/etc/nginx/conf.d/
             - ./nginx/logs:/var/log/nginx
+            - ./nginx/ssl:/etc/nginx/ssl
         networks:
-            - job_portal_network
+            - ambulance_network
         depends_on:
             app:
                 condition: service_healthy
@@ -65,94 +93,134 @@ services:
             interval: 30s
             timeout: 10s
             retries: 3
-            start_period: 40s
-
+            start_period: 60s
 
     # MySQL Database Service
     db:
         image: mysql:8.0
-        container_name: job_portal_db
+        container_name: ambulance_db
         restart: unless-stopped
         environment:
-            MYSQL_ROOT_PASSWORD: password
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
             MYSQL_DATABASE: ambulance_portal
             MYSQL_USER: laravel_user
-            MYSQL_PASSWORD: laravel_password
+            MYSQL_PASSWORD: ${DB_PASSWORD:-laravel_password}
             MYSQL_ROOT_HOST: '%'
         volumes:
             - dbdata:/var/lib/mysql
             - ./mysql/conf.d:/etc/mysql/conf.d
             - ./mysql/init:/docker-entrypoint-initdb.d
+            - ./mysql/backup:/var/backup
         networks:
-            - job_portal_network
+            - ambulance_network
         ports:
-            - "3306:3306"
+            - "127.0.0.1:3306:3306"
         command: >
             --default-authentication-plugin=mysql_native_password
             --bind-address=0.0.0.0
+            --max-allowed-packet=128M
+            --innodb-buffer-pool-size=1G
+            --innodb-log-file-size=256M
         healthcheck:
-            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-password}"]
             interval: 20s
             timeout: 15s
             retries: 10
             start_period: 60s
 
-    # Queue Worker Service (untuk background jobs)
+    # Queue Worker Service
     queue:
         build:
             context: .
             dockerfile: Dockerfile
-        container_name: job_portal_queue
+        container_name: ambulance_queue
         restart: unless-stopped
         volumes:
             - ./:/var/www
             - ./wait-for-db.sh:/wait-for-db.sh
+        environment:
+            - DB_CONNECTION=mysql
+            - DB_HOST=db
+            - DB_PORT=3306
+            - DB_DATABASE=ambulance_portal
+            - DB_USERNAME=laravel_user
+            - DB_PASSWORD=${DB_PASSWORD:-laravel_password}
+            - APP_ENV=production
+            - APP_DEBUG=false
+            - APP_URL=https://18.136.126.65
+            - APP_KEY=${APP_KEY}
         networks:
-            - job_portal_network
+            - ambulance_network
         depends_on:
             db:
                 condition: service_healthy
             app:
-                condition: service_started
+                condition: service_healthy
         entrypoint: ["/bin/bash", "-c"]
         command:
             - |
                 chmod +x /wait-for-db.sh
                 /wait-for-db.sh db
-                sleep 15  # Tunggu app container siap
-                php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+                sleep 30  # Wait for app container to be fully ready
+                php artisan queue:work --sleep=3 --tries=3 --max-time=3600 --timeout=120 --queue=high,default,low
+        healthcheck:
+            test: ["CMD-SHELL", "ps aux | grep 'queue:work' | grep -v grep"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 60s
 
-    # Scheduler Service (untuk scheduled tasks)
+    # Scheduler Service
     scheduler:
         build:
             context: .
             dockerfile: Dockerfile
-        container_name: job_portal_scheduler
+        container_name: ambulance_scheduler
         restart: unless-stopped
         volumes:
             - ./:/var/www
             - ./wait-for-db.sh:/wait-for-db.sh
+        environment:
+            - DB_CONNECTION=mysql
+            - DB_HOST=db
+            - DB_PORT=3306
+            - DB_DATABASE=ambulance_portal
+            - DB_USERNAME=laravel_user
+            - DB_PASSWORD=${DB_PASSWORD:-laravel_password}
+            - APP_ENV=production
+            - APP_DEBUG=false
+            - APP_URL=https://18.136.126.65
+            - APP_KEY=${APP_KEY}
         networks:
-            - job_portal_network
+            - ambulance_network
         depends_on:
             db:
                 condition: service_healthy
             app:
-                condition: service_started
+                condition: service_healthy
         entrypoint: ["/bin/bash", "-c"]
         command:
             - |
                 chmod +x /wait-for-db.sh
                 /wait-for-db.sh db
-                sleep 20  # Tunggu app container siap
+                sleep 35  # Wait for app container to be fully ready
+                # Start cron service
+                service cron start
+                # Keep container running
                 while true; do
                   php artisan schedule:run --verbose --no-interaction
                   sleep 60
                 done
+        healthcheck:
+            test: ["CMD-SHELL", "ps aux | grep cron | grep -v grep || exit 1"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 60s
 
 # Networks
 networks:
-    job_portal_network:
+    ambulance_network:
         driver: bridge
 
 # Volumes

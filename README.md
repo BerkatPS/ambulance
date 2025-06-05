@@ -7,6 +7,10 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+# Ambulance Portal
+
+Ambulance Portal adalah aplikasi manajemen ambulans yang dibangun dengan Laravel. Aplikasi ini memungkinkan pengguna untuk memesan ambulans, melacak lokasi ambulans, dan mengelola pembayaran.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
@@ -59,3 +63,115 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Deployment
+
+### Persyaratan Sistem
+
+- Docker dan Docker Compose
+- Minimal 2GB RAM
+- 20GB ruang disk
+- Koneksi internet
+
+### Langkah Deployment
+
+1. Clone repository ini
+2. Salin `.env.example` ke `.env` dan sesuaikan konfigurasi
+3. Jalankan script deployment:
+
+```bash
+chmod +x deploy.sh
+sudo ./deploy.sh
+```
+
+Script ini akan:
+- Memperbarui paket sistem
+- Menginstal Docker dan Docker Compose (jika belum ada)
+- Membuat sertifikat SSL self-signed
+- Menyiapkan direktori yang diperlukan
+- Membuat file `.env` jika belum ada
+- Membangun dan menjalankan container Docker
+- Menyiapkan cron job untuk backup database
+
+### Setup SSL (Opsional untuk Produksi)
+
+Untuk lingkungan produksi, disarankan menggunakan sertifikat SSL dari Let's Encrypt:
+
+```bash
+chmod +x setup-ssl.sh
+sudo ./setup-ssl.sh
+```
+
+Pilih opsi 2 untuk mengatur sertifikat Let's Encrypt.
+
+## Manajemen Aplikasi
+
+### Melihat Log
+
+```bash
+docker-compose logs -f
+```
+
+### Restart Layanan
+
+```bash
+docker-compose restart
+```
+
+### Menghentikan Aplikasi
+
+```bash
+docker-compose down
+```
+
+### Menjalankan Aplikasi
+
+```bash
+docker-compose up -d
+```
+
+## Backup dan Restore Database
+
+Gunakan script `backup-restore.sh` untuk mengelola backup database:
+
+```bash
+chmod +x backup-restore.sh
+sudo ./backup-restore.sh
+```
+
+Script ini menyediakan opsi untuk:
+1. Membuat backup baru
+2. Melihat daftar backup yang tersedia
+3. Memulihkan dari backup
+4. Membersihkan backup lama
+
+## Pemecahan Masalah
+
+### Masalah Koneksi Database
+
+Jika aplikasi tidak dapat terhubung ke database:
+
+```bash
+docker-compose restart db
+docker-compose restart app
+```
+
+### Masalah Izin File
+
+Jika ada masalah izin file:
+
+```bash
+docker exec -it ambulance_app bash -c "chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache"
+```
+
+### Memeriksa Status Container
+
+```bash
+docker-compose ps
+```
+
+### Memeriksa Log Aplikasi
+
+```bash
+docker exec -it ambulance_app bash -c "tail -f /var/www/storage/logs/laravel.log"
+```

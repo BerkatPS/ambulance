@@ -31,13 +31,13 @@ if (pusherKey && pusherCluster) {
             // Determine auth endpoint based on user type (stored in meta tags)
             let authEndpoint = '/broadcasting/auth';
             const userType = document.head.querySelector('meta[name="user-type"]')?.getAttribute('content');
-            
+
             // Set up Echo with the appropriate configuration
             window.Echo = new Echo({
                 broadcaster: 'pusher',
-                key: pusherKey,
-                cluster: pusherCluster,
-                forceTLS: import.meta.env.VITE_PUSHER_SCHEME === 'https',
+                key: import.meta.env.VITE_PUSHER_APP_KEY,
+                cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+                forceTLS: true,
                 enabledTransports: ['ws', 'wss'],
                 disableStats: true,
                 enableLogging: true,
