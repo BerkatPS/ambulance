@@ -8,7 +8,6 @@ services:
         restart: unless-stopped
         volumes:
             - ./:/var/www
-            - /var/www/vendor
             - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
             - ./wait-for-db.sh:/wait-for-db.sh
         environment:
@@ -43,12 +42,11 @@ services:
                 chmod +x /wait-for-db.sh
                 /wait-for-db.sh db
 
-                # Clear caches and rebuild if needed
+                php artisan cache:clear
                 php artisan config:clear
                 php artisan route:clear
                 php artisan view:clear
 
-                # Run migrations
                 php artisan migrate --force
 
                 # Start PHP-FPM
@@ -71,10 +69,8 @@ services:
             - "8000:80"
         volumes:
             - ./:/var/www
-            - /var/www/vendor
             - ./nginx/conf.d/:/etc/nginx/conf.d/
             - ./nginx/logs:/var/log/nginx
-            - ./nginx/ssl:/etc/nginx/ssl
         networks:
             - ambulance_network
         depends_on:
@@ -102,7 +98,6 @@ services:
             - dbdata:/var/lib/mysql
             - ./mysql/conf.d:/etc/mysql/conf.d
             - ./mysql/init:/docker-entrypoint-initdb.d
-            - ./mysql/backup:/var/backup
         networks:
             - ambulance_network
         ports:
@@ -152,7 +147,7 @@ services:
         restart: unless-stopped
         volumes:
             - ./:/var/www
-            - /var/www/vendor
+
             - ./wait-for-db.sh:/wait-for-db.sh
         networks:
             - ambulance_network

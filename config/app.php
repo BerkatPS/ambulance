@@ -168,6 +168,7 @@ return [
         
         // Third-party Service Providers...
         Laravel\Pail\PailServiceProvider::class,
+        Laravel\Breeze\BreezeServiceProvider::class,
     ],
 
     /*
